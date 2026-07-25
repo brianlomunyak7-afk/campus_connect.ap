@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: campusconnect_db
+    environment:
+      POSTGRES_USER: brian
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: campusconnect
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+
+  api:
+    build: ./backend
+    container_name: campusconnect_api
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://brian:password@db:5432/campusconnect
+    depends_on:
+      - db
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: campusconnect_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    restart: always
+
+volumes:
+  pgdata:
