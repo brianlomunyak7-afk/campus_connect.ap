@@ -43,6 +43,19 @@ jobs:
           pip install -r requirements.txt
           pip install pytest httpx
 
+      - name: 🔍 Scan for vulnerabilities
+        run: |
+          cd backend
+          pip install pip-audit
+          pip-audit || true
+          echo "✅ Vulnerability scan complete!"
+
+      - name: 📦 Check outdated packages
+        run: |
+          cd backend
+          pip list --outdated
+          echo "✅ Package check complete!"
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql://brian:password@localhost:5432/campusconnect_test
@@ -80,6 +93,12 @@ jobs:
         run: |
           cd frontend
           flutter pub get
+
+      - name: 🔍 Check outdated Flutter packages
+        run: |
+          cd frontend
+          flutter pub outdated || true
+          echo "✅ Flutter package check complete!"
 
       - name: Analyze code
         run: |
