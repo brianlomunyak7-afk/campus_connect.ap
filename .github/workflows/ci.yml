@@ -30,23 +30,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
-          cd backend
-          pip install -r requirements.txt
-          pip install pytest httpx
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest httpx uvicorn pip-audit
 
       - name: 🔍 Scan for vulnerabilities
         run: |
           cd backend
-          pip install pip-audit
           pip-audit || true
           echo "✅ Vulnerability scan complete!"
 
@@ -70,11 +70,11 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
         run: |
           cd backend
-          pip install uvicorn
           python -m uvicorn main:app --host 0.0.0.0 --port 8001 &
-          sleep 5
+          sleep 8
           curl -f http://localhost:8001/ || exit 1
           echo "✅ API is running!"
+
   # ─── Frontend Build ───────────────────────
   frontend-build:
     name: 🐦 Flutter Build Check
@@ -82,12 +82,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Flutter Web
+        run: flutter config --enable-web
 
       - name: Install dependencies
         run: |
@@ -118,10 +129,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build Docker image
         run: |
           docker build ./backend -t campusconnect-api
           echo "✅ Docker build successful!"
-          
