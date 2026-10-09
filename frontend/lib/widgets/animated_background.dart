@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Gradient backdrop used behind the home screen.
-/// The home screen's text and cards are styled for a dark background.
 class AnimatedBackground extends StatelessWidget {
   final Widget child;
 

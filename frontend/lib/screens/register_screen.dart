@@ -57,7 +57,6 @@ class _RegisterScreenState extends State<RegisterScreen>
       CurvedAnimation(parent: _eyeController, curve: Curves.easeInOut),
     );
 
-    // Blink every 3 seconds
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 3));
       if (!mounted) return false;
@@ -133,7 +132,6 @@ class _RegisterScreenState extends State<RegisterScreen>
     }
   }
 
-  // FastAPI sends a string `detail` for 400 errors, and a list for validation errors
   String _errorDetail(http.Response response) {
     try {
       final detail = jsonDecode(response.body)['detail'];
@@ -465,7 +463,6 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 }
 
-// Same grid background
 class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -485,7 +482,6 @@ class GridPainter extends CustomPainter {
   bool shouldRepaint(GridPainter _) => false;
 }
 
-// Register mascot — same lamp but AMBER/GOLD glow instead of green
 class RegisterMascotPainter extends CustomPainter {
   final double eyeScale;
   final double glowValue;

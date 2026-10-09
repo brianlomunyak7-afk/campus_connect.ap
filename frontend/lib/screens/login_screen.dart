@@ -59,7 +59,6 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(parent: _eyeController, curve: Curves.easeInOut),
     );
 
-    // Blink every 3 seconds
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 3));
       if (!mounted) return false;
@@ -105,11 +104,9 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isLoading = false);
 
       if (response.statusCode == 200) {
-        // ✅ Login successful
         final data = jsonDecode(response.body);
         final token = data['access_token'];
 
-        // Save token for later use
        await AuthStorage.saveToken(token, data['username'] ?? '');
 
         if (mounted) {
@@ -119,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen>
           );
         }
       } else if (response.statusCode == 401) {
-        // ❌ Wrong password or email
         _showError('Wrong email or password. Try again!');
       } else {
         _showError('Something went wrong. Please try again.');
@@ -158,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen>
       backgroundColor: const Color(0xFF0A0E1A),
       body: Stack(
         children: [
-          // Background grid pattern
           CustomPaint(
             painter: GridPainter(),
             size: Size.infinite,
@@ -203,7 +198,6 @@ class _LoginScreenState extends State<LoginScreen>
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Glow container around mascot
                   Container(
                     width: 200,
                     height: 220,
@@ -228,7 +222,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Glow shadow under mascot
                   AnimatedBuilder(
                     animation: _glowAnimation,
                     builder: (context, _) => Container(
@@ -322,7 +315,6 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               const SizedBox(height: 28),
 
-              // Email
               _buildField(
                 controller: _emailController,
                 label: 'Email',
@@ -331,7 +323,6 @@ class _LoginScreenState extends State<LoginScreen>
               ),
               const SizedBox(height: 16),
 
-              // Password
               _buildField(
                 controller: _passwordController,
                 label: 'Password',
@@ -359,7 +350,6 @@ class _LoginScreenState extends State<LoginScreen>
 
               const SizedBox(height: 8),
 
-              // Login button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -490,7 +480,6 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-// Mascot painter — animated lamp character
 class MascotPainter extends CustomPainter {
   final double eyeScale;
   final double glowValue;
@@ -502,13 +491,11 @@ class MascotPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
-    // Body glow
     final glowPaint = Paint()
       ..color = const Color(0xFF00E676).withOpacity(glowValue * 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
     canvas.drawCircle(Offset(cx, cy - 10), 75, glowPaint);
 
-    // Lamp shade (triangle-ish top)
     final shadePaint = Paint()
       ..color = const Color(0xFF4CAF50)
       ..style = PaintingStyle.fill;
@@ -521,7 +508,6 @@ class MascotPainter extends CustomPainter {
     shadePath.close();
     canvas.drawPath(shadePath, shadePaint);
 
-    // Shade highlight
     final highlightPaint = Paint()
       ..color = Colors.white.withOpacity(0.15)
       ..style = PaintingStyle.fill;
@@ -533,15 +519,12 @@ class MascotPainter extends CustomPainter {
     highlightPath.close();
     canvas.drawPath(highlightPath, highlightPaint);
 
-    // Face area (lighter circle)
     final facePaint = Paint()..color = const Color(0xFF66BB6A);
     canvas.drawCircle(Offset(cx, cy - 10), 42, facePaint);
 
-    // Eyes
     final eyePaint = Paint()..color = Colors.white;
     final eyeHeight = 10.0 * eyeScale;
 
-    // Left eye
     canvas.drawOval(
       Rect.fromCenter(
           center: Offset(cx - 14, cy - 12),
@@ -549,7 +532,6 @@ class MascotPainter extends CustomPainter {
           height: eyeHeight),
       eyePaint,
     );
-    // Right eye
     canvas.drawOval(
       Rect.fromCenter(
           center: Offset(cx + 14, cy - 12),
@@ -558,14 +540,12 @@ class MascotPainter extends CustomPainter {
       eyePaint,
     );
 
-    // Pupils
     if (eyeScale > 0.3) {
       final pupilPaint = Paint()..color = const Color(0xFF1B5E20);
       canvas.drawCircle(Offset(cx - 14, cy - 12), 4, pupilPaint);
       canvas.drawCircle(Offset(cx + 14, cy - 12), 4, pupilPaint);
     }
 
-    // Smile
     final smilePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
@@ -576,7 +556,6 @@ class MascotPainter extends CustomPainter {
     smilePath.quadraticBezierTo(cx, cy + 22, cx + 14, cy + 8);
     canvas.drawPath(smilePath, smilePaint);
 
-    // Tongue
     final tonguePaint = Paint()..color = const Color(0xFFE57373);
     canvas.drawOval(
       Rect.fromCenter(
@@ -584,7 +563,6 @@ class MascotPainter extends CustomPainter {
       tonguePaint,
     );
 
-    // Lamp neck
     final neckPaint = Paint()
       ..color = const Color(0xFF9E9E9E)
       ..strokeWidth = 8
@@ -593,7 +571,6 @@ class MascotPainter extends CustomPainter {
     canvas.drawLine(
         Offset(cx, cy + 10), Offset(cx, cy + 60), neckPaint);
 
-    // Base
     final basePaint = Paint()..color = const Color(0xFF757575);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -604,7 +581,6 @@ class MascotPainter extends CustomPainter {
       basePaint,
     );
 
-    // Base glow
     final baseGlowPaint = Paint()
       ..color =
           const Color(0xFF00E676).withOpacity(glowValue * 0.6)
@@ -615,7 +591,6 @@ class MascotPainter extends CustomPainter {
       baseGlowPaint,
     );
 
-    // Light beam from lamp
     final beamPaint = Paint()
       ..color =
           const Color(0xFF00E676).withOpacity(glowValue * 0.12)
@@ -634,7 +609,6 @@ class MascotPainter extends CustomPainter {
       old.eyeScale != eyeScale || old.glowValue != glowValue;
 }
 
-// Background grid painter
 class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

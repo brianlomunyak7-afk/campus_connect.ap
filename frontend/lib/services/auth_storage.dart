@@ -6,7 +6,6 @@ class AuthStorage {
 
   static bool get isLoggedIn => token != null;
 
-  // Save token to device storage
   static Future<void> saveToken(String t, String u) async {
     token = t;
     username = u;
@@ -15,7 +14,6 @@ class AuthStorage {
     await prefs.setString('username', u);
   }
 
-  // Load token on app start
   static Future<bool> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
     token = prefs.getString('token');
@@ -23,7 +21,6 @@ class AuthStorage {
     return token != null;
   }
 
-  // Clear on logout
   static Future<void> clear() async {
     token = null;
     username = null;

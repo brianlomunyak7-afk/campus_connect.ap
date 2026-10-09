@@ -146,7 +146,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       backgroundColor: const Color(0xFF0A0E1A),
       body: Stack(
         children: [
-          // Grid background
           CustomPaint(painter: _GridPainter(), size: Size.infinite),
 
           Center(
@@ -154,7 +153,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Floating lock icon mascot
                   AnimatedBuilder(
                     animation: _floatAnimation,
                     builder: (context, _) => Transform.translate(
@@ -208,7 +206,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                   ),
                   const SizedBox(height: 32),
 
-                  // Card
                   AnimatedBuilder(
                     animation: _glowAnimation,
                     builder: (context, _) => Container(
