@@ -1,21 +1,33 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
-// Categories must match the backend's NoticeCategory values exactly
 const List<String> noticeCategories = ['Event', 'Job', 'Lost & Found', 'General'];
 
 class CreateNoticeScreen extends StatefulWidget {
-  const CreateNoticeScreen({super.key});
+  final Map<String, dynamic>? existing;
+
+  const CreateNoticeScreen({super.key, this.existing});
 
   @override
   State<CreateNoticeScreen> createState() => _CreateNoticeScreenState();
 }
 
 class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
-  final _titleController = TextEditingController();
-  final _bodyController = TextEditingController();
-  String _category = noticeCategories.first;
+  late final TextEditingController _titleController;
+  late final TextEditingController _bodyController;
+  late String _category;
   bool _isSaving = false;
+
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _titleController = TextEditingController(text: existing?['title'] ?? '');
+    _bodyController = TextEditingController(text: existing?['body'] ?? '');
+    _category = existing?['category'] ?? noticeCategories.first;
+  }
 
   @override
   void dispose() {
@@ -34,9 +46,17 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await ApiService.createNotice(title: title, body: body, category: _category);
+      if (_isEditing) {
+        await ApiService.updateNotice(
+          widget.existing!['id'] as int,
+          title: title,
+          body: body,
+          category: _category,
+        );
+      } else {
+        await ApiService.createNotice(title: title, body: body, category: _category);
+      }
       if (!mounted) return;
-      // Tell the home screen to reload the notice list
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
@@ -52,7 +72,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New notice')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit notice' : 'New notice')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -97,7 +117,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Post notice'),
+                : Text(_isEditing ? 'Save changes' : 'Post notice'),
           ),
         ],
       ),

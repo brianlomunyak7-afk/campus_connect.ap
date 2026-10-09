@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage.dart';
+import 'create_notice_screen.dart';
 
 class NoticeDetailScreen extends StatefulWidget {
   final Map<String, dynamic> notice;
@@ -13,19 +14,19 @@ class NoticeDetailScreen extends StatefulWidget {
 
 class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
   final _commentController = TextEditingController();
+  late Map<String, dynamic> _notice;
   late Future<List<dynamic>> _commentsFuture;
   bool _isPosting = false;
 
-  int get _noticeId => widget.notice['id'] as int;
+  int get _noticeId => _notice['id'] as int;
 
-  // Usernames are unique, so this is enough to tell if the notice is yours
-  bool get _isAuthor =>
-      AuthStorage.username != null &&
-      widget.notice['author']?['username'] == AuthStorage.username;
+  bool _isOwner(Map<String, dynamic>? item) =>
+      AuthStorage.username != null && item?['author']?['username'] == AuthStorage.username;
 
   @override
   void initState() {
     super.initState();
+    _notice = widget.notice;
     _commentsFuture = ApiService.fetchComments(_noticeId);
   }
 
@@ -43,6 +44,8 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String _cleanError(Object e) => e.toString().replaceFirst('Exception: ', '');
+
   Future<void> _postComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
@@ -57,8 +60,28 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isPosting = false);
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage(_cleanError(e));
     }
+  }
+
+  Future<void> _deleteComment(int commentId) async {
+    try {
+      await ApiService.deleteComment(commentId);
+      if (!mounted) return;
+      _reloadComments();
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage(_cleanError(e));
+    }
+  }
+
+  Future<void> _editNotice() async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => CreateNoticeScreen(existing: _notice)),
+    );
+    if (saved != true || !mounted) return;
+    Navigator.pop(context, true);
   }
 
   Future<void> _confirmDelete() async {
@@ -66,7 +89,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete this notice?'),
-        content: const Text('This also removes its comments.'),
+        content: const Text('Its comments will be removed too.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -84,24 +107,30 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
     try {
       await ApiService.deleteNotice(_noticeId);
       if (!mounted) return;
-      // Pop back to the list and tell it to reload
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage(_cleanError(e));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final notice = widget.notice;
+    final notice = _notice;
     final author = notice['author']?['username'] ?? 'Anonymous';
+    final isOwner = _isOwner(notice);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notice'),
         actions: [
-          if (_isAuthor)
+          if (isOwner)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit notice',
+              onPressed: _editNotice,
+            ),
+          if (isOwner)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: 'Delete notice',
@@ -143,7 +172,7 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                     }
                     if (snapshot.hasError) {
                       return Text(
-                        snapshot.error.toString().replaceFirst('Exception: ', ''),
+                        _cleanError(snapshot.error!),
                         style: const TextStyle(color: Colors.red),
                       );
                     }
@@ -153,10 +182,20 @@ class _NoticeDetailScreenState extends State<NoticeDetailScreen> {
                     }
                     return Column(
                       children: comments.map<Widget>((c) {
+                        final commentOwner = _isOwner(
+                          {'author': c['author']},
+                        );
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(c['content'] ?? ''),
                           subtitle: Text(c['author']?['username'] ?? 'Anonymous'),
+                          trailing: commentOwner
+                              ? IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  tooltip: 'Delete comment',
+                                  onPressed: () => _deleteComment(c['id'] as int),
+                                )
+                              : null,
                         );
                       }).toList(),
                     );
