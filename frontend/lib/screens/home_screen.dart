@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/auth_storage.dart';
 import '../widgets/animated_background.dart';
+import 'create_notice_screen.dart';
+import 'login_screen.dart';
+import 'notice_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +32,34 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Opens the create form; reloads the list if a notice was posted
+  Future<void> _openCreateNotice() async {
+    final posted = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateNoticeScreen()),
+    );
+    if (posted == true) _refreshNotices();
+  }
+
+  // Opens a notice; reloads the list if it was deleted
+  Future<void> _openNotice(Map<String, dynamic> notice) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => NoticeDetailScreen(notice: notice)),
+    );
+    if (changed == true) _refreshNotices();
+  }
+
+  Future<void> _logout() async {
+    await AuthStorage.clear();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBackground(
@@ -40,9 +72,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           backgroundColor: Colors.white24,
           elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              tooltip: 'Log out',
+              onPressed: _logout,
+            ),
+          ],
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {},
+          onPressed: _openCreateNotice,
           backgroundColor: accentColor,
           child: const Icon(Icons.add_comment, color: Colors.white),
         ),
@@ -116,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: ListTile(
+                            onTap: () => _openNotice(notice),
                             contentPadding: const EdgeInsets.all(16.0),
                             title: Text(
                               notice['title'] ?? 'Untitled',
