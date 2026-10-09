@@ -1,13 +1,10 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 NoticeCategory = Literal["Event", "Job", "Lost & Found", "General"]
 
-# ==========================================
-#               USER SCHEMAS
-# ==========================================
 
 class UserCreate(BaseModel):
     username: str = Field(min_length=1, max_length=50)
@@ -16,7 +13,6 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Returned to the user about themselves (includes email)."""
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -26,7 +22,6 @@ class UserResponse(BaseModel):
 
 
 class AuthorResponse(BaseModel):
-    """Public author details shown on notices and comments (no email)."""
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -49,14 +44,16 @@ class ResetPassword(BaseModel):
     new_password: str = Field(min_length=6)
 
 
-# ==========================================
-#              NOTICE SCHEMAS
-# ==========================================
-
 class NoticeCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1)
     category: NoticeCategory
+
+
+class NoticeUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    body: Optional[str] = Field(default=None, min_length=1)
+    category: Optional[NoticeCategory] = None
 
 
 class NoticeResponse(BaseModel):
@@ -67,13 +64,10 @@ class NoticeResponse(BaseModel):
     body: str
     category: str
     created_at: datetime
+    updated_at: datetime
     author_id: int
     author: AuthorResponse
 
-
-# ==========================================
-#             COMMENT SCHEMAS
-# ==========================================
 
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1)

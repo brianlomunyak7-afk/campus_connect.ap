@@ -203,3 +203,92 @@ def test_comments_require_auth(auth_headers):
     notice = _create_notice(auth_headers)
     response = client.post(f"/notices/{notice['id']}/comments", json={"content": "hi"})
     assert response.status_code in (401, 403)
+
+
+def test_health_reports_database_ok():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "database": "ok"}
+
+
+def test_me_returns_current_user(auth_headers):
+    response = client.get("/auth/me", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["username"]
+    assert "hashed_password" not in response.json()
+
+
+def test_me_requires_valid_token():
+    assert client.get("/auth/me").status_code in (401, 403)
+
+
+def test_notices_pagination(auth_headers):
+    for i in range(3):
+        _create_notice(auth_headers, category="General")
+    first = client.get("/notices", params={"category": "General", "limit": 2, "offset": 0}).json()
+    second = client.get("/notices", params={"category": "General", "limit": 2, "offset": 2}).json()
+    assert len(first) == 2
+    assert len(second) >= 1
+    assert not {n["id"] for n in first} & {n["id"] for n in second}
+
+
+def test_pagination_limits_are_validated():
+    assert client.get("/notices", params={"limit": 0}).status_code == 422
+    assert client.get("/notices", params={"limit": 101}).status_code == 422
+    assert client.get("/notices", params={"offset": -1}).status_code == 422
+
+
+def test_author_can_edit_notice(auth_headers):
+    notice = _create_notice(auth_headers, category="Event")
+    response = client.patch(
+        f"/notices/{notice['id']}",
+        json={"title": "Updated title", "category": "Job"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Updated title"
+    assert body["category"] == "Job"
+    assert body["body"] == "Bring a laptop"
+
+
+def test_other_user_cannot_edit_notice(auth_headers):
+    notice = _create_notice(auth_headers)
+    other_headers = _register_and_login()
+    response = client.patch(f"/notices/{notice['id']}", json={"title": "hijack"}, headers=other_headers)
+    assert response.status_code == 403
+
+
+def test_edit_rejects_invalid_category(auth_headers):
+    notice = _create_notice(auth_headers)
+    response = client.patch(f"/notices/{notice['id']}", json={"category": "Gossip"}, headers=auth_headers)
+    assert response.status_code == 422
+
+
+def test_author_can_delete_own_comment(auth_headers):
+    notice = _create_notice(auth_headers)
+    comment = client.post(
+        f"/notices/{notice['id']}/comments", json={"content": "bye"}, headers=auth_headers
+    ).json()
+    assert client.delete(f"/comments/{comment['id']}", headers=auth_headers).status_code == 204
+    assert client.get(f"/notices/{notice['id']}/comments").json() == []
+
+
+def test_other_user_cannot_delete_comment(auth_headers):
+    notice = _create_notice(auth_headers)
+    comment = client.post(
+        f"/notices/{notice['id']}/comments", json={"content": "mine"}, headers=auth_headers
+    ).json()
+    other_headers = _register_and_login()
+    assert client.delete(f"/comments/{comment['id']}", headers=other_headers).status_code == 403
+
+
+def test_delete_missing_comment_returns_404(auth_headers):
+    assert client.delete("/comments/999999999", headers=auth_headers).status_code == 404
+
+
+def test_deleting_notice_removes_its_comments(auth_headers):
+    notice = _create_notice(auth_headers)
+    client.post(f"/notices/{notice['id']}/comments", json={"content": "x"}, headers=auth_headers)
+    assert client.delete(f"/notices/{notice['id']}", headers=auth_headers).status_code == 204
+    assert client.get(f"/notices/{notice['id']}/comments").status_code == 404
