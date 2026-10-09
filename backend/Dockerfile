@@ -1,5 +1,5 @@
 # Python 3.12 matches the version the backend is developed and tested on
-FROM python:3.12-slim
+FROM public.ecr.aws/docker/library/python:3.12-slim
 
 WORKDIR /app
 
