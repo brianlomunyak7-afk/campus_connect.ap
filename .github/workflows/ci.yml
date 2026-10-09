@@ -35,14 +35,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: 'pip'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          pip install pytest httpx uvicorn pip-audit
+          pip install -r backend/requirements-dev.txt
+          pip install pip-audit
 
       - name: 🔍 Scan for vulnerabilities
         run: |
@@ -62,7 +62,7 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
         run: |
           cd backend
-          pytest tests/ -v || echo "No tests yet — skipping"
+          pytest tests/ -v
 
       - name: Check API starts
         env:

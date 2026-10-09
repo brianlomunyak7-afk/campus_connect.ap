@@ -19,7 +19,11 @@ services:
       - ./backend:/app
     ports:
       - "8000:8000"
+    # SECRET_KEY comes from backend/.env (copy backend/.env.example first)
+    env_file:
+      - ./backend/.env
     environment:
+      # Overrides DATABASE_URL in backend/.env so the API reaches the "db" container
       - DATABASE_URL=postgresql://brian:password@db:5432/campusconnect
     depends_on:
       - db
