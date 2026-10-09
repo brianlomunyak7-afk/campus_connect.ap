@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from auth import create_access_token, get_current_user, hash_password, verify_password
+from config import get_settings
 from database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine)
@@ -20,8 +21,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=list(get_settings().cors_origins),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -9,20 +9,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 import models
+from config import get_settings
 from database import get_db
 
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 PBKDF2_ITERATIONS = 390_000
 
 bearer_scheme = HTTPBearer()
-
-
-def _secret_key() -> str:
-    key = os.getenv("SECRET_KEY")
-    if not key:
-        raise RuntimeError("SECRET_KEY environment variable is not set")
-    return key
 
 
 def hash_password(password: str) -> str:
@@ -41,8 +34,8 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def create_access_token(user_id: int) -> str:
-    expires = datetime.now(timezone.utc) + timedelta(minutes=TOKEN_EXPIRE_MINUTES)
-    return jwt.encode({"sub": str(user_id), "exp": expires}, _secret_key(), algorithm=ALGORITHM)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=get_settings().token_expire_minutes)
+    return jwt.encode({"sub": str(user_id), "exp": expires}, get_settings().secret_key, algorithm=ALGORITHM)
 
 
 def get_current_user(
@@ -55,7 +48,7 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(credentials.credentials, _secret_key(), algorithms=[ALGORITHM])
+        payload = jwt.decode(credentials.credentials, get_settings().secret_key, algorithms=[ALGORITHM])
         user_id = int(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
         raise invalid
