@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -85,15 +87,59 @@ class _RegisterScreenState extends State<RegisterScreen>
       );
       return;
     }
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
       );
+      return;
     }
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiService.baseUrl}/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': _usernameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      );
+      setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Please log in.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_errorDetail(response))),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot connect to server.')),
+        );
+      }
+    }
+  }
+
+  // FastAPI sends a string `detail` for 400 errors, and a list for validation errors
+  String _errorDetail(http.Response response) {
+    try {
+      final detail = jsonDecode(response.body)['detail'];
+      if (detail is String) return detail;
+    } catch (_) {}
+    return 'Registration failed. Please check your details and try again.';
   }
 
   @override
