@@ -96,7 +96,10 @@ pytest
 - 🔐 Register & Login with JWT Authentication
 - 📢 Post notices — Events, Jobs, Lost & Found, General
 - 💬 Comment on notices
+- ➕ Post a notice from the app (+ button)
+- 📝 Open a notice to read it, see its comments, and add one
 - 🗑️ Delete your own notices
+- 🚪 Log out
 - 🏷️ Filter notices by category
 - 🔑 Reset password from the login screen — ⚠️ no email is sent yet, see [Known Limitations](#-known-limitations)
 - 🐳 Dockerized with Nginx as a reverse proxy
@@ -177,7 +180,6 @@ These live in `backend/.env` (copy from `backend/.env.example`):
 ## ⚠️ Known Limitations
 
 - **Password reset has no email step.** `POST /auth/reset-password` changes a password using only the email address, so anyone who knows an account's email can take it over. Add an emailed reset token before using this anywhere public.
-- The home screen's **+ button** does not open a "new notice" form yet. The backend and `ApiService.createNotice` are ready for it.
 - The Flutter app talks to the API at `http://127.0.0.1:8001` (see `frontend/lib/services/api_service.dart`). When using Docker, the API is at port 8080, so change `baseUrl` there.
 
 ---
