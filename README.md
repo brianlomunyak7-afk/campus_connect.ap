@@ -1,84 +1,64 @@
 # 🎓 CampusConnect
 > **Your Campus. Connected.**
 
-A full-stack community notice board for university students — post events, jobs, lost items and announcements.
+A full-stack community notice board for university students — post events, jobs, lost items and announcements, discuss them in comments.
 
 ---
 
-## ⚡ Run Locally in 3 Steps — No Setup Headaches!
+## ⚡ Run Locally in 3 Steps
 
 ### Step 1 — Download the Project
-Click the green **"Code"** button on GitHub → **Download ZIP** → Extract it.
-
-OR if you have Git:
 ```bash
 git clone https://github.com/brianlomunyak7-afk/campus_connect.ap.git
 cd campus_connect.ap
 ```
 
----
-
 ### Step 2 — Start the Backend
-You need a running PostgreSQL database with a database named `campusconnect`.
+You need PostgreSQL running with a database named `campusconnect`.
 
 ```bash
 cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-Create your `.env` file and fill it in:
-```bash
-cp .env.example .env
-```
-
-```env
-DATABASE_URL=postgresql://YOUR_USER:YOUR_PASSWORD@localhost:5432/campusconnect
-SECRET_KEY=a-long-random-string
-```
-
-Start the backend:
-```bash
+cp .env.example .env          # then set DATABASE_URL and SECRET_KEY
+alembic upgrade head          # creates the tables
 uvicorn main:app --reload --port 8001
 ```
 
-✅ Backend live at → **http://127.0.0.1:8001**  
-📖 API Docs at → **http://127.0.0.1:8001/docs**
-
----
+✅ Backend live at → **http://127.0.0.1:8001**
+📖 API docs at → **http://127.0.0.1:8001/docs**
 
 ### Step 3 — Start the Frontend
-Open a **new terminal**, then:
 ```bash
 cd frontend
 flutter pub get
 flutter run -d chrome
 ```
 
-✅ App opens automatically in Chrome!
-
 ---
 
-## 🐳 OR — Run Everything With Docker (Easiest!)
-
-Docker reads the same `backend/.env` file, so create it first (see Step 2). The `DATABASE_URL` in that file is overridden by Docker Compose to point at the bundled database, so you only need to set `SECRET_KEY`.
+## 🐳 Or Run Everything With Docker
 
 ```bash
-cp backend/.env.example backend/.env   # then set SECRET_KEY
+cp backend/.env.example backend/.env    # set SECRET_KEY
 docker compose up --build
 ```
 
-Then open:
-- 🌐 App API (via Nginx): **http://localhost:8080**
-- 📖 API Docs (via Nginx): **http://localhost:8080/docs**
-- 🔧 Direct API (no Nginx): **http://localhost:8000**
+The database, API (with migrations applied on start) and Nginx all come up together.
+
+- 🌐 App API via Nginx: **http://localhost:8080**
+- 📖 API docs via Nginx: **http://localhost:8080/docs**
+- 🔧 Direct API: **http://localhost:8000**
+- 🩺 Health check: **http://localhost:8080/health**
+
+To run more API workers, set `WEB_CONCURRENCY` in `docker-compose.yml` (default 2).
 
 ---
 
-## 🧪 Run the Backend Tests
+## 🧪 Run the Tests
 
-The tests use a real PostgreSQL database, so set `DATABASE_URL` to a **test** database (not your main one — the tests create their own rows):
+The tests use a real PostgreSQL database and create their own rows, so point them at a **test** database:
 
 ```bash
 cd backend
@@ -89,20 +69,21 @@ SECRET_KEY=test-secret-key \
 pytest
 ```
 
+The test session applies the Alembic migrations before running.
+
 ---
 
 ## ✨ Features
 
-- 🔐 Register & Login with JWT Authentication
-- 📢 Post notices — Events, Jobs, Lost & Found, General
-- 💬 Comment on notices
-- ➕ Post a notice from the app (+ button)
-- 📝 Open a notice to read it, see its comments, and add one
-- 🗑️ Delete your own notices
-- 🚪 Log out
+- 🔐 Register, login and log out with JWT tokens
+- 👤 Current user endpoint (`/auth/me`)
+- 📢 Post notices in four categories: Event, Job, Lost & Found, General
+- ✏️ Edit and 🗑️ delete your own notices
+- 💬 Comment on notices and delete your own comments
 - 🏷️ Filter notices by category
-- 🔑 Reset password from the login screen — ⚠️ no email is sent yet, see [Known Limitations](#-known-limitations)
-- 🐳 Dockerized with Nginx as a reverse proxy
+- 📄 Paginated notice and comment lists ("Load more" in the app)
+- 🔑 Reset password from the login screen — ⚠️ no email is sent yet, see [Known Limitations](#️-known-limitations)
+- 🐳 Dockerized: PostgreSQL, API and Nginx, with health checks and a non-root API container
 
 ---
 
@@ -110,20 +91,24 @@ pytest
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | / | ❌ | Health check |
+| GET | / | ❌ | Liveness check |
+| GET | /health | ❌ | Checks the database connection (503 if down) |
 | POST | /auth/register | ❌ | Register a new user |
 | POST | /auth/login | ❌ | Login — returns a JWT `access_token` |
+| GET | /auth/me | ✅ | The logged-in user |
 | POST | /auth/reset-password | ❌ | Set a new password for an email address |
-| GET | /notices | ❌ | List notices (newest first), optional `?category=` filter |
-| POST | /notices | ✅ | Create a notice (author is taken from the token) |
-| GET | /notices/{id} | ❌ | Get a single notice |
-| DELETE | /notices/{id} | ✅ | Delete a notice (author only) |
-| POST | /notices/{id}/comments | ✅ | Add a comment to a notice |
-| GET | /notices/{id}/comments | ❌ | List comments on a notice |
+| GET | /notices | ❌ | List notices, newest first. Query: `category`, `limit` (1–100, default 20), `offset` |
+| POST | /notices | ✅ | Create a notice (author comes from the token) |
+| GET | /notices/{id} | ❌ | Get one notice |
+| PATCH | /notices/{id} | ✅ | Edit your notice (author only) |
+| DELETE | /notices/{id} | ✅ | Delete your notice and its comments (author only) |
+| GET | /notices/{id}/comments | ❌ | List comments, oldest first. Query: `limit` (default 50), `offset` |
+| POST | /notices/{id}/comments | ✅ | Add a comment |
+| DELETE | /comments/{id} | ✅ | Delete your comment (author only) |
 
 > ✅ = Requires `Authorization: Bearer <token>` header | ❌ = Public
 
-Categories are: `Event`, `Job`, `Lost & Found`, `General`.
+Interactive docs at `/docs` list the request and response shapes.
 
 ---
 
@@ -131,36 +116,58 @@ Categories are: `Event`, `Job`, `Lost & Found`, `General`.
 
 ```
 campus_connect.ap/
-├── backend/            FastAPI app
-│   ├── main.py         Routes
-│   ├── auth.py         Password hashing, JWT tokens, current-user dependency
-│   ├── models.py       SQLAlchemy tables
-│   ├── schemas.py      Pydantic request/response models
-│   ├── database.py     Database engine and session
-│   ├── tests/          Pytest suite (uses a real PostgreSQL database)
+├── backend/                  FastAPI app
+│   ├── main.py               Routes
+│   ├── auth.py               Password hashing, JWT tokens, current-user dependency
+│   ├── config.py             Settings read from environment variables
+│   ├── database.py           Engine (with connection pool) and sessions
+│   ├── models.py             SQLAlchemy tables
+│   ├── schemas.py            Request and response models
+│   ├── migrations/           Alembic migrations
+│   ├── tests/                Pytest suite (real PostgreSQL)
 │   ├── Dockerfile
 │   └── requirements*.txt
-├── frontend/           Flutter app (web)
+├── frontend/                 Flutter app (web)
 │   └── lib/
 │       ├── main.dart
-│       ├── screens/    Login, register, forgot password, home
-│       ├── services/   API client and token storage
-│       └── widgets/    Shared UI pieces
-├── nginx/              Reverse proxy config used by Docker Compose
-├── docker-compose.yml  Database + API + Nginx
-└── .github/workflows/  CI: backend tests, Flutter build, Docker build
+│       ├── screens/          Login, register, forgot password, home, notice detail, create/edit notice
+│       ├── services/         API client and token storage
+│       └── widgets/          Shared UI pieces
+├── nginx/                    Reverse proxy config used by Docker Compose
+├── docker-compose.yml        Database + API + Nginx
+└── .github/workflows/        CI: backend tests, Flutter build, Docker build
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## ⚙️ Configuration
 
-These live in `backend/.env` (copy from `backend/.env.example`):
+Set these in `backend/.env` (copy from `backend/.env.example`):
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `SECRET_KEY` | Yes | Secret used to sign login tokens. Use a long random value |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | local Postgres | PostgreSQL connection string |
+| `SECRET_KEY` | Yes | — | Signs login tokens. Use a long random value |
+| `CORS_ORIGINS` | No | `*` | Comma-separated list of allowed browser origins |
+| `TOKEN_EXPIRE_MINUTES` | No | `10080` (7 days) | Login token lifetime |
+| `DB_POOL_SIZE` | No | `10` | Database connections kept open per process |
+| `DB_MAX_OVERFLOW` | No | `20` | Extra connections allowed under load |
+
+Docker Compose overrides `DATABASE_URL` to point at the bundled database and sets `WEB_CONCURRENCY`.
+
+---
+
+## 🗄️ Database Migrations
+
+The schema is managed by Alembic. The API container runs `alembic upgrade head` on start.
+
+```bash
+cd backend
+alembic upgrade head                               # apply all migrations
+alembic revision --autogenerate -m "describe change"   # after editing models.py
+```
+
+If you have a database created by an older version of this project, drop it and let the migrations create it, or run `alembic stamp head` only if its tables already match the current models.
 
 ---
 
@@ -169,25 +176,27 @@ These live in `backend/.env` (copy from `backend/.env.example`):
 | Layer | Technology |
 |-------|------------|
 | Frontend | Flutter (Dart) |
-| Backend | FastAPI (Python 3.12) |
+| Backend | FastAPI (Python 3.12), SQLAlchemy 2, Alembic |
 | Database | PostgreSQL 15 |
-| Auth | JWT tokens (PyJWT), PBKDF2-SHA256 password hashing |
+| Auth | JWT (PyJWT), PBKDF2-SHA256 password hashing |
 | Proxy | Nginx |
-| DevOps | Docker + Docker Compose, GitHub Actions |
+| DevOps | Docker, Docker Compose, GitHub Actions |
 
 ---
 
 ## ⚠️ Known Limitations
 
 - **Password reset has no email step.** `POST /auth/reset-password` changes a password using only the email address, so anyone who knows an account's email can take it over. Add an emailed reset token before using this anywhere public.
+- **No rate limiting** on login or registration. Put Nginx `limit_req` or an API gateway in front before opening it to the internet.
 - The Flutter app talks to the API at `http://127.0.0.1:8001` (see `frontend/lib/services/api_service.dart`). When using Docker, the API is at port 8080, so change `baseUrl` there.
+- The home screen background is a static gradient, not an animation.
 
 ---
 
 ## 👨‍💻 Author
 
-**Brian** — Embu University  
-HackLabs Bootcamp | Cloud/DevOps & AI Engineering Track  
+**Brian** — Embu University
+HackLabs Bootcamp | Cloud/DevOps & AI Engineering Track
 🇰🇪 Kenya
 
 ---
