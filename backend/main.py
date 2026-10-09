@@ -9,9 +9,7 @@ import models
 import schemas
 from auth import create_access_token, get_current_user, hash_password, verify_password
 from config import get_settings
-from database import engine, get_db
-
-models.Base.metadata.create_all(bind=engine)
+from database import get_db
 
 app = FastAPI(
     title="CampusConnect API",
